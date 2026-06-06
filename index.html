@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>百人一首マスター</title>
+    <style>
+        body { font-family: sans-serif; background: #f5f5f5; color: #333; margin: 20px; }
+        h1 { text-align: center; color: #2c3e50; }
+        .section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        .flex-container { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background: #34495e; color: white; }
+        .wrong-active { background-color: #ffcccc !important; } 
+        .kimariji { color: #e74c3c; font-weight: bold; } 
+        .quiz-box { border: 2px solid #3498db; padding: 20px; border-radius: 8px; margin-top: 15px; }
+        .choice-btn { display: block; width: 100%; padding: 10px; margin: 5px 0; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; cursor: pointer; text-align: left; }
+        .choice-btn:hover { background: #e0e0e0; }
+        .hidden { display: none; }
+        input[type="text"] { font-size: 16px; }
+    </style>
+</head>
+<body>
+
+    <h1>百人一首マスター</h1>
+
+    <div class="section">
+        <h2>(1) 百人一首 一覧表</h2>
+        <div class="flex-container">
+            <label>表示切替:
+                <select id="displayMode" onchange="renderTable()">
+                    <option value="kanji">漢字入り</option>
+                    <option value="rekishi">ひらがな歴史的</option>
+                    <option value="gendai">ひらがな現代</option>
+                </select>
+            </label>
+            <label>並び替え:
+                <select id="sortMode" onchange="renderTable()">
+                    <option value="id">番号順</option>
+                    <option value="era">年代順</option>
+                    <option value="season">季節ごと</option>
+                </select>
+            </label>
+            <button onclick="startQuizFromSelected('(2)')">選択した歌で「下の句クイズ」</button>
+            <button onclick="startQuizFromSelected('(3)')">選択した歌で「句虫食いクイズ」</button>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
+                    <th>番号</th>
+                    <th>歌</th>
+                    <th>作者 (年代)</th>
+                    <th>属性</th>
+                    <th>意味</th>
+                </tr>
+            </thead>
+            <tbody id="poemTableBody">
+                </tbody>
+        </table>
+    </div>
+
+    <div id="quizSection" class="section hidden">
+        <h2 id="quizTitle">クイズ</h2>
+        <div id="quizContainer" class="quiz-box">
+            </div>
+        <button onclick="closeQuiz()" style="margin-top: 10px;">クイズを終了して一覧に戻る</button>
+    </div>
+
+    <script>
+        // グローバル状態管理
+        let poems = []; // JSONから読み込んだ100首を格納
+        let wrongData = JSON.parse(localStorage.getItem('hyakunin_wrong_data')) || {}; 
+        // 構造: { poemId: { active: true, successCount: 0 } }
+
+        let currentQuizList = [];
+        let currentQuizIndex = 0;
+        let currentQuizType = ''; // '(2)' または '(3)'
+        let subType = ''; // 'choice' または 'input'
+
+        // ページ読み込み時にJSONを取得
+        window.onload = function() {
+            fetch('hyakunin.json')
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('JSONファイルの読み込みに失敗しました。');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    poems = data;
+                    renderTable();
+                })
+                .catch(error => {
+                    alert(error.message + '\nローカル環境で動かす場合は、VSCodeのLive Serverなどのローカルサーバーを使用してください。');
+                });
+        };
+
+        // ローカルストレージ保存用
+        function saveWrongData() {
+            localStorage.setItem('hyakunin_wrong_data', JSON.stringify(wrongData));
+        }
+
+        // 決まり字を強調する関数（ひらがな表示時のみ適用）
+        function highlightKimariji(text, kimariji, mode) {
+            if (mode === 'kanji') return text; 
+            // 全角・半角スペースを考慮しつつ決まり字の長さを合わせる
+            if (text.startsWith(kimariji)) {
+                return `<span class="kimariji">${kimariji}</span>${text.slice(kimariji.length)}`;
+            }
+            return text;
+        }
+
+        // テーブル描画
+        function renderTable() {
+            const mode = document.getElementById('displayMode').value;
+            const sort = document.getElementById('sortMode').value;
+            const tbody = document.getElementById('poemTableBody');
+            tbody.innerHTML = '';
+
+            // 並び替え処理
+            let sortedPoems = [...poems];
+            if (sort === 'era') {
+                sortedPoems.sort((a, b) => (a.era || '').localeCompare(b.era || ''));
+            } else if (sort === 'season') {
+                sortedPoems.sort((a, b) => (a.season || '').localeCompare(b.season || ''));
+            } else {
+                sortedPoems.sort((a, b) => a.id - b.id);
+            }
+
+            sortedPoems.forEach(p => {
+                const tr = document.createElement('tr');
+                if (wrongData[p.id] && wrongData[p.id].active) {
+                    tr.classList.add('wrong-active');
+                }
+
+                let displayText = p[mode] || '';
+                displayText = highlightKimariji(displayText, p.kimariji, mode);
+
+                tr.innerHTML = `
+                    <td><input type="checkbox" class="poem-select" value="${p.id}"></td>
+                    <td>${p.id}</td>
+                    <td>${displayText}</td>
+                    <td>${p.author}<br><small>(${p.era})</small></td>
+                    <td>${p.season} / ${p.genre}</td>
+                    <td><small>${p.meaning}</small></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // 全選択/解除
+        function toggleSelectAll(master) {
+            const checkboxes = document.querySelectorAll('.poem-select');
+            checkboxes.forEach(cb => cb.checked = master.checked);
+        }
+
+        // クイズ開始の準備
+        function startQuizFromSelected(type) {
+            const checkboxes = document.querySelectorAll('.poem-select:checked');
+            const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+
+            if (selectedIds.length === 0) {
+                alert('クイズ対象の歌を一覧からチェックしてください。');
+                return;
+            }
+
+            currentQuizList = poems.filter(p => selectedIds.includes(p.id));
+            currentQuizIndex = 0;
+            currentQuizType = type;
+
+            document.getElementById('quizSection').classList.remove('hidden');
+            window.scrollTo(0, document.getElementById('quizSection').offsetTop);
+
+            if (type === '(2)') {
+                document.getElementById('quizTitle').innerText = '下の句クイズ';
+                document.getElementById('quizContainer').innerHTML = `
+                    <p>クイズの形式を選んでください：</p>
+                    <button onclick="startShimonoku('choice')">4択から選ぶ</button>
+                    <button onclick="startShimonoku('input')">ひらがな（現代）で入力する</button>
+                `;
+            } else if (type === '(3)') {
+                document.getElementById('quizTitle').innerText = '句虫食いクイズ';
+                startMushikui();
+            }
+        }
+
+        function closeQuiz() {
+            document.getElementById('quizSection').classList.add('hidden');
+            renderTable(); // 状態更新（赤背景のON/OFF）を一覧に反映
+        }
+
+        /* --- (2) 下の句クイズの実装 --- */
+        function startShimonoku(mode) {
+            subType = mode;
+            showShimonokuQuestion();
+        }
+
+        function showShimonokuQuestion() {
+            if (currentQuizIndex >= currentQuizList.length) {
+                document.getElementById('quizContainer').innerHTML = '<p>指定されたすべての歌が終了しました！</p>';
+                return;
+            }
+
+            const currentPoem = currentQuizList[currentQuizIndex];
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = `<h3>第 ${currentQuizIndex + 1} 問 / 全 ${currentQuizList.length} 問</h3>`;
+            
+            // 漢字の上の句（初句・二句・三句）を抽出して表示
+            const phrases = currentPoem.kanji.split(' ');
+            const kamiKanji = phrases.slice(0, 3).join(' ');
+            
+            // 現代仮名遣いの下の句（四句・結句）を正解とする
+            const shimoPhrases = currentPoem.gendai.split(' ');
+            const correctShimoGendai = shimoPhrases.slice(3, 5).join(' ');
+
+            container.innerHTML += `<p><strong>上の句（問題）:</strong> ${kamiKanji}</p>`;
+
+            if (subType === 'choice') {
+                // 4択生成（他のすべての歌の下の句からランダムにダミーを作成）
+                let choices = [correctShimoGendai];
+                let dummies = poems.filter(p => p.id !== currentPoem.id).map(p => {
+                    const dp = p.gendai.split(' ');
+                    return dp.slice(3, 5).join(' ');
+                });
+
+                while(choices.length < 4 && dummies.length > 0) {
+                    let randIndex = Math.floor(Math.random() * dummies.length);
+                    let picked = dummies.splice(randIndex, 1)[0];
+                    if(!choices.includes(picked)) choices.push(picked);
+                }
+                choices.sort(() => Math.random() - 0.5); // 選択肢をシャッフル
+
+                container.innerHTML += `<p>下の句を選んでください：</p>`;
+                choices.forEach(c => {
+                    container.innerHTML += `<button class="choice-btn" onclick="checkShimonokuAnswer('${c}', '${correctShimoGendai}', ${currentPoem.id})">${c}</button>`;
+                });
+            } else {
+                // 入力式
+                container.innerHTML += `
+                    <p>下の句をひらがな（現代仮名遣い）で入力してください（スペースなし）：</p>
+                    <input type="text" id="shimoInput" style="width:80%; padding:8px;" autocomplete="off"><br><br>
+                    <button onclick="checkShimonokuInput('${correctShimoGendai}', ${currentPoem.id})">回答する</button>
+                `;
+            }
+        }
+
+        function checkShimonokuAnswer(selected, correct, id) {
+            if (selected === correct) {
+                alert('正解！');
+                handleScore(id, true);
+            } else {
+                alert(`不正解！ 正解は「${correct}」です。`);
+                handleScore(id, false);
+            }
+            currentQuizIndex++;
+            showShimonokuQuestion();
+        }
+
+        function checkShimonokuInput(correct, id) {
+            const inputVal = document.getElementById('shimoInput').value.trim().replace(/\s+/g, '');
+            const correctVal = correct.replace(/\s+/g, '');
+
+            if (inputVal === correctVal) {
+                alert('正解！');
+                handleScore(id, true);
+            } else {
+                alert(`不正解！ 正解は「${correct}」です。`);
+                handleScore(id, false);
+            }
+            currentQuizIndex++;
+            showShimonokuQuestion();
+        }
+
+        /* --- (3) 句虫食いクイズの実装 --- */
+        function startMushikui() {
+            showMushikuiQuestion();
+        }
+
+        function showMushikuiQuestion() {
+            if (currentQuizIndex >= currentQuizList.length) {
+                document.getElementById('quizContainer').innerHTML = '<p>指定されたすべての歌が終了しました！</p>';
+                return;
+            }
+
+            const currentPoem = currentQuizList[currentQuizIndex];
+            // 現代仮名遣いの歌を5つの句に分解（スペース区切り）
+            const phrases = currentPoem.gendai.split(' '); 
+            
+            // 隠す句を1〜4句（配列のインデックス0〜3）からランダムに1つ決定
+            const hideIndex = Math.floor(Math.random() * 4); 
+            const correctAnswer = phrases[hideIndex];
+
+            // 虫食い表示の作成
+            let displayPhrases = [...phrases];
+            displayPhrases[hideIndex] = '「 ？？？？？ 」';
+
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = `<h3>第 ${currentQuizIndex + 1} 問 / 全 ${currentQuizList.length} 問</h3>`;
+            container.innerHTML += `<p><strong>虫食い歌:</strong> ${displayPhrases.join(' ')}</p>`;
+            container.innerHTML += `
+                <p>「 ？？？？？ 」に入る句をひらがな（現代仮名遣い）で入力してください：</p>
+                <input type="text" id="mushiInput" style="width:80%; padding:8px;" autocomplete="off"><br><br>
+                <button onclick="checkMushikuiAnswer('${correctAnswer}', ${currentPoem.id})">回答する</button>
+            `;
+        }
+
+        function checkMushikuiAnswer(correct, id) {
+            const inputVal = document.getElementById('mushiInput').value.trim();
+            if (inputVal === correct) {
+                alert('正解！');
+                handleScore(id, true);
+            } else {
+                alert(`不正解！ 正解は「${correct}」です。`);
+                handleScore(id, false);
+            }
+            currentQuizIndex++;
+            showMushikuiQuestion();
+        }
+
+        /* --- 共通のスコア・ローカルストレージ処理 --- */
+        function handleScore(id, isCorrect) {
+            if (!wrongData[id]) {
+                wrongData[id] = { active: false, successCount: 0 };
+            }
+
+            if (isCorrect) {
+                if (wrongData[id].active) {
+                    wrongData[id].successCount++;
+                    if (wrongData[id].successCount >= 3) {
+                        wrongData[id].active = false;
+                        wrongData[id].successCount = 0;
+                    }
+                }
+            } else {
+                wrongData[id].active = true;
+                wrongData[id].successCount = 0;
+            }
+            saveWrongData();
+        }
+    </script>
+</body>
+</html>
