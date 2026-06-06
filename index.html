@@ -3,27 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>百人一首マスター</title>
+    <title>Utalog</title>
     <style>
-        body { font-family: sans-serif; background: #f5f5f5; color: #333; margin: 20px; }
-        h1 { text-align: center; color: #2c3e50; }
-        .section { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        .flex-container { display: flex; gap: 10px; margin-bottom: 15px; flex-wrap: wrap; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background: #34495e; color: white; }
-        .wrong-active { background-color: #ffcccc !important; } 
-        .kimariji { color: #e74c3c; font-weight: bold; } 
-        .quiz-box { border: 2px solid #3498db; padding: 20px; border-radius: 8px; margin-top: 15px; }
-        .choice-btn { display: block; width: 100%; padding: 10px; margin: 5px 0; background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 5px; cursor: pointer; text-align: left; }
-        .choice-btn:hover { background: #e0e0e0; }
-        .hidden { display: none; }
-        input[type="text"] { font-size: 16px; }
+        body {
+    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+    background: #f7f5f0; /* 温かみのある鳥の子色調の背景 */
+    color: #332f21; /* 完全な黒ではなく、深い墨色 */
+    margin: 0;
+    padding: 20px;
+    line-height: 1.6;
+}
+
+h1 {
+    text-align: center;
+    color: #5b2024; /* 深みのあるえんじ色 */
+    font-size: 2rem;
+    margin-bottom: 30px;
+    letter-spacing: 0.1em;
+    border-bottom: 2px solid #d9cbb6;
+    padding-bottom: 15px;
+}
+
+h2 {
+    color: #2b4c3f; /* 深みのある常磐色 */
+    font-size: 1.3rem;
+    margin-top: 0;
+    border-left: 4px solid #2b4c3f;
+    padding-left: 10px;
+}
+
+/* 各セクションのカード */
+.section {
+    background: #ffffff;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    border: 1px solid #eadecc;
+}
+
+/* コントロールエリア（選択肢やボタンの並び） */
+.flex-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+    background: #faf8f5;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #f0e6d6;
+}
+
+label {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #555;
+}
+
+select {
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+/* ボタンのデザイン */
+button {
+    background: #5b2024; /* えんじ色 */
+    color: white;
+    border: none;
+    padding: 10px 18px;
+    font-size: 0.9rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    font-weight: bold;
+}
+
+button:hover {
+    background: #732c31;
+    transform: translateY(-1px);
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+/* テーブル（一覧表）の洗練 */
+table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    margin-top: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #eadecc;
+}
+
+th, td {
+    padding: 14px 16px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
+
+th {
+    background: #2b4c3f; /* 常磐色 */
+    color: white;
+    font-weight: 600;
+    font-size: 0.95rem;
+    letter-spacing: 0.05em;
+}
+
+td {
+    font-size: 0.95rem;
+}
+
+tr:last-child td {
+    border-bottom: none;
+}
+
+/* チェックボックスの入った行のホバー効果 */
+tbody tr:hover {
+    background-color: #fcfbfa;
+}
+
+/* 間違えた歌（赤背景）を上品に */
+.wrong-active {
+    background-color: #fff0f0 !important;
+}
+.wrong-active td {
+    border-bottom: 1px solid #fcc !important;
+}
+
+/* 決まり字の強調 */
+.kimariji {
+    color: #c0392b;
+    font-weight: bold;
+    background: #fdf2f0;
+    padding: 1px 4px;
+    border-radius: 4px;
+}
+
+/* クイズエリア */
+.quiz-box {
+    border: 2px solid #eadecc;
+    background: #faf8f5;
+    padding: 30px;
+    border-radius: 10px;
+    margin-top: 15px;
+    text-align: center;
+}
+
+.quiz-box h3 {
+    margin-top: 0;
+    color: #7f8c8d;
+    font-size: 0.9rem;
+}
+
+.quiz-box p {
+    font-size: 1.2rem;
+    margin: 20px 0;
+}
+
+/* 4択クイズのボタン */
+.choice-btn {
+    display: block;
+    width: 100%;
+    max-width: 500 bounds;
+    margin: 10px auto;
+    padding: 14px 20px;
+    background: #ffffff;
+    color: #332f21;
+    border: 1px solid #d9cbb6;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: left;
+    font-size: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    transition: all 0.2s;
+}
+
+.choice-btn:hover {
+    background: #f5eedf;
+    border-color: #5b2024;
+    color: #5b2024;
+}
+
+/* テキスト入力フォーム */
+input[type="text"] {
+    width: 100%;
+    max-width: 400px;
+    padding: 12px;
+    border: 1px solid #d9cbb6;
+    border-radius: 6px;
+    font-size: 1rem;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input[type="text"]:focus {
+    border-color: #2b4c3f;
+    box-shadow: 0 0 5px rgba(43, 76, 63, 0.2);
+}
+
+/* ユーティリティ */
+.hidden {
+    display: none;
+}
+
+/* レスポンシブ対応（スマホで見やすく） */
+@media (max-width: 768px) {
+    body { padding: 10px; }
+    .section { padding: 15px; }
+    table, thead, tbody, th, td, tr { display: block; }
+    th { display: none; }
+    tr { margin-bottom: 15px; border: 1px solid #eadecc; border-radius: 8px; padding: 10px; background: #fff; }
+    td { border: none; padding: 6px 10px; }
+    td:before { content: attr(data-label); font-weight: bold; display: block; font-size: 0.8rem; color: #888; }
+}
     </style>
 </head>
 <body>
 
-    <h1>百人一首マスター</h1>
+    <h1>Utalog</h1>
 
     <div class="section">
         <h2>(1) 百人一首 一覧表</h2>
