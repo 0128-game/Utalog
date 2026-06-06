@@ -187,3 +187,579 @@
             padding: 3px 8px;
             border-radius: 20px;
             font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .poem-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.85rem;
+            color: #999;
+            font-weight: bold;
+        }
+
+        .poem-text {
+            font-size: 1.35rem;
+            font-weight: bold;
+            text-align: center;
+            margin: 10px 0;
+            font-family: "Yu Mincho", "YuMincho", serif;
+        }
+
+        .author-text { font-size: 0.9rem; color: #666; margin-top: 5px; }
+        .meaning-text {
+            font-size: 0.85rem; color: #444; text-align: center;
+            background: #faf8f5; padding: 10px; border-radius: 6px;
+            margin-top: 10px; border: 1px solid #eee;
+        }
+        .meta-info { font-size: 0.8rem; color: #2b4c3f; font-weight: bold; margin-bottom: 5px; }
+
+        .nav-controls { display: flex; justify-content: space-between; align-items: center; margin-top: 15px; }
+        .nav-btn { background: #2b4c3f; }
+        .nav-btn:hover { background: #396352; }
+
+        .wrong-toggle-btn {
+            background: transparent; color: #c0392b; border: 1px solid #c0392b;
+            padding: 6px 12px; font-size: 0.8rem;
+        }
+        .wrong-toggle-btn.active { background: #c0392b; color: white; }
+        .kimariji { color: #c0392b; font-weight: bold; background: #fdf2f0; padding: 1px 4px; border-radius: 4px; }
+
+        /* テーブル */
+        .table-container { overflow-x: auto; margin-top: 5px; }
+        table {
+            width: 100%; border-collapse: separate; border-spacing: 0;
+            border-radius: 8px; overflow: hidden; border: 1px solid #eadecc;
+        }
+        th, td { padding: 12px 14px; text-align: left; border-bottom: 1px solid #eee; font-size: 0.9rem; }
+        th { background: #2b4c3f; color: white; font-weight: 600; }
+        tbody tr:hover { background-color: #fcfbfa; }
+        .row-wrong { background-color: #fff5f5; }
+        .row-unselected { opacity: 0.5; background-color: #f7f7f7; }
+
+        /* クイズ */
+        .quiz-box { border: 2px solid #eadecc; background: #faf8f5; padding: 25px; border-radius: 10px; text-align: center; }
+        .choice-btn {
+            display: block; width: 100%; margin: 10px auto; padding: 12px 15px;
+            background: #ffffff; color: #332f21; border: 1px solid #d9cbb6;
+            border-radius: 8px; cursor: pointer; text-align: left; font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+        .choice-btn:hover { background: #f5eedf; border-color: #5b2024; color: #5b2024; }
+        
+        input[type="text"] {
+            width: 100%; max-width: 400px; padding: 10px; border: 1px solid #d9cbb6;
+            border-radius: 6px; font-size: 1rem; outline: none; box-sizing: border-box;
+        }
+        input[type="text"]:focus { border-color: #2b4c3f; }
+
+        /* トースト */
+        #toast {
+            position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%) translateY(100px);
+            background: rgba(43, 76, 63, 0.95); color: white; padding: 12px 24px;
+            border-radius: 30px; font-weight: bold; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease; z-index: 1000; font-size: 0.95rem; pointer-events: none;
+        }
+        #toast.show { transform: translateX(-50%) translateY(0); }
+        #toast.wrong-toast { background: rgba(192, 57, 43, 0.95); }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <h1>Utalog</h1>
+    <div class="subtitle">百人一首スマート学習システム</div>
+
+    <div class="tabs">
+        <button id="tabCard" class="tab-btn active" onclick="switchMode('card')">🎴 カードモード</button>
+        <button id="tabTable" class="tab-btn" onclick="switchMode('table')">📋 一覧モード</button>
+    </div>
+
+    <div class="section" style="padding: 15px; margin-bottom: 15px;">
+        <div class="flex-container" style="margin:0;">
+            <label>文字表記:
+                <select id="displayMode" onchange="updateView()">
+                    <option value="kanji">漢字入り</option>
+                    <option value="rekishi">ひらがな歴史的</option>
+                    <option value="gendai">ひらがな現代</option>
+                </select>
+            </label>
+            <label>並び順:
+                <select id="sortMode" onchange="changeSort()">
+                    <option value="id">番号順</option>
+                    <option value="era">年代順</option>
+                    <option value="season">季節順</option>
+                </select>
+            </label>
+            <button onclick="startQuiz('(2)')">下の句クイズ</button>
+            <button onclick="startQuiz('(3)')">虫食いクイズ</button>
+        </div>
+    </div>
+
+    <div id="cardSection" class="section">
+        <div id="cardWindow">
+            <div class="card-container" onclick="toggleFlip()">
+                <div id="flashCard" class="card">
+                    <div class="card-front">
+                        <div id="frontWrongBadge" class="wrong-badge hidden">苦手</div>
+                        <div id="frontNumber" class="poem-number">No.--</div>
+                        <div style="font-size: 0.8rem; color:#aaa; margin-bottom:10px;">【上の句】タップで反転</div>
+                        <div id="frontText" class="poem-text">選択された歌がありません</div>
+                        <div id="frontAuthor" class="author-text"></div>
+                    </div>
+                    <div class="card-back">
+                        <div id="backNumber" class="poem-number">No.--</div>
+                        <div id="backMeta" class="meta-info"></div>
+                        <div style="font-size: 0.8rem; color:#aaa; margin-bottom: 5px;">【下の句】</div>
+                        <div id="backText" class="poem-text"></div>
+                        <div id="backMeaning" class="meaning-text"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="nav-controls">
+                <button class="nav-btn" onclick="prevCard()">◀ 前へ</button>
+                <button id="wrongToggle" class="wrong-toggle-btn" onclick="toggleCardWrongStatus()">☆ 苦手登録</button>
+                <span id="cardProgress" style="font-size:0.9rem; color:#666;">0 / 0</span>
+                <button class="nav-btn" onclick="nextCard()">次へ ▶</button>
+            </div>
+        </div>
+        <div id="cardEmptyMessage" class="hidden" style="text-align:center; padding: 40px 0; color:#7f8c8d;">
+            一覧モードで「クイズ」にチェックを入れた歌がここに表示されます。
+        </div>
+    </div>
+
+    <div id="tableSection" class="section hidden">
+        <div class="bulk-controls">
+            <div class="bulk-group">
+                <span style="font-size: 0.85rem; font-weight: bold; color:#555; align-self:center;">クイズチェック:</span>
+                <button class="btn-mini btn-accent" onclick="bulkQuizSelect(true)">すべて選択</button>
+                <button class="btn-mini" onclick="bulkQuizSelect(false)">すべて外す</button>
+            </div>
+            <div class="bulk-group">
+                <span style="font-size: 0.85rem; font-weight: bold; color:#555; align-self:center;">苦手チェック:</span>
+                <button class="btn-mini btn-accent" onclick="bulkWrongSelect(true)">すべて登録</button>
+                <button class="btn-mini" onclick="bulkWrongSelect(false)">手動分のみ外す</button> 
+            </div>
+        </div>
+
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 50px; text-align:center;">クイズ</th>
+                        <th style="width: 50px; text-align:center;">苦手</th>
+                        <th style="width: 40px;">No.</th>
+                        <th>歌</th>
+                        <th>作者</th>
+                        <th>意味</th>
+                    </tr>
+                </thead>
+                <tbody id="poemTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="quizSection" class="section hidden">
+        <h2 id="quizTitle" style="color:#5b2024; font-size:1.3rem; text-align:center;">クイズ</h2>
+        <div id="quizContainer" class="quiz-box"></div>
+        <button onclick="closeQuiz()" style="margin-top: 15px; width:100%; background:#7f8c8d;">クイズを終了して戻る</button>
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        let poems = []; 
+        let sortedList = []; // 現在のソート順の全データ
+        let activeList = []; // クイズチェックが入っている有効データ（カードとクイズで使用）
+        let currentIndex = 0;
+        
+        let wrongData = JSON.parse(localStorage.getItem('utalog_wrong_data')) || {}; 
+        let quizSelection = JSON.parse(localStorage.getItem('utalog_quiz_select')) || {}; 
+
+        let currentQuizList = [];
+        let currentQuizIndex = 0;
+        let subType = '';
+
+        window.onload = function() {
+            fetch('hyakunin.json')
+                .then(response => { if (!response.ok) throw new Error(); return response.json(); })
+                .then(data => {
+                    poems = data;
+                    poems.forEach(p => {
+                        if (quizSelection[p.id] === undefined) quizSelection[p.id] = true;
+                    });
+                    changeSort();
+                })
+                .catch(() => {
+                    showToast('JSONの読込に失敗しました。', true);
+                });
+        };
+
+        function saveData() {
+            localStorage.setItem('utalog_wrong_data', JSON.stringify(wrongData));
+            localStorage.setItem('utalog_quiz_select', JSON.stringify(quizSelection));
+        }
+
+        function showToast(message, isWrong = false) {
+            const toast = document.getElementById('toast');
+            toast.innerText = message;
+            if (isWrong) { toast.classList.add('wrong-toast'); } else { toast.classList.remove('wrong-toast'); }
+            toast.classList.add('show');
+            setTimeout(() => { toast.classList.remove('show'); }, 2200);
+        }
+
+        function switchMode(mode) {
+            document.getElementById('quizSection').classList.add('hidden');
+            if (mode === 'card') {
+                document.getElementById('tabCard').classList.add('active');
+                document.getElementById('tabTable').classList.remove('active');
+                document.getElementById('cardSection').classList.remove('hidden');
+                document.getElementById('tableSection').classList.add('hidden');
+                updateActiveList();
+                updateCard();
+            } else {
+                document.getElementById('tabCard').classList.remove('remove');
+                document.getElementById('tabCard').classList.remove('active');
+                document.getElementById('tabTable').classList.add('active');
+                document.getElementById('cardSection').classList.add('hidden');
+                document.getElementById('tableSection').classList.remove('hidden');
+                renderTable();
+            }
+        }
+
+        // ソートが切り替わったら全体のリストを並び替えて、アクティブリストを更新
+        function changeSort() {
+            const sort = document.getElementById('sortMode').value;
+            sortedList = [...poems];
+
+            if (sort === 'era') {
+                sortedList.sort((a, b) => (a.era || '').localeCompare(b.era || ''));
+            } else if (sort === 'season') {
+                sortedList.sort((a, b) => (a.season || '').localeCompare(b.season || ''));
+            } else {
+                sortedList.sort((a, b) => a.id - b.id);
+            }
+
+            currentIndex = 0;
+            updateActiveList();
+            updateView();
+        }
+
+        // クイズにチェックが入っているデータだけを「activeList」に抽出
+        function updateActiveList() {
+            activeList = sortedList.filter(p => quizSelection[p.id] !== false);
+            if (currentIndex >= activeList.length && activeList.length > 0) {
+                currentIndex = 0;
+            }
+        }
+
+        function updateView() {
+            if (!document.getElementById('cardSection').classList.contains('hidden')) {
+                updateCard();
+            } else {
+                renderTable();
+            }
+        }
+
+        /* --- 一括操作機能 --- */
+        // クイズチェックの一括操作
+        function bulkQuizSelect(status) {
+            sortedList.forEach(p => {
+                quizSelection[p.id] = status;
+            });
+            saveData();
+            updateActiveList();
+            renderTable();
+            showToast(status ? 'すべての歌をクイズ対象にしました' : 'すべてのクイズチェックを外しました');
+        }
+
+        // 苦手チェックの一括操作
+        function bulkWrongSelect(status) {
+            sortedList.forEach(p => {
+                if (!wrongData[p.id]) wrongData[p.id] = { active: false, successCount: 0, isFixed: false };
+                
+                if (status === true) {
+                    wrongData[p.id].active = true;
+                } else {
+                    // 「すべて外す」の時、システム固定（isFixed: true）されてない手動分だけを外す
+                    if (!wrongData[p.id].isFixed) {
+                        wrongData[p.id].active = false;
+                        wrongData[p.id].successCount = 0;
+                    }
+                }
+            });
+            saveData();
+            renderTable();
+            showToast(status ? 'すべての歌を苦手登録しました' : '手動登録分の苦手を一括解除しました（ミス固定分はキープ）');
+        }
+
+
+        /* --- フラッシュカード機能 --- */
+        function toggleFlip() { 
+            if (activeList.length > 0) document.getElementById('flashCard').classList.toggle('flipped'); 
+        }
+
+        function updateCard() {
+            if (activeList.length === 0) {
+                document.getElementById('cardWindow').classList.add('hidden');
+                document.getElementById('cardEmptyMessage').classList.remove('hidden');
+                return;
+            }
+            document.getElementById('cardWindow').classList.remove('hidden');
+            document.getElementById('cardEmptyMessage').classList.add('hidden');
+
+            document.getElementById('flashCard').classList.remove('flipped');
+
+            const p = activeList[currentIndex];
+            const mode = document.getElementById('displayMode').value;
+
+            document.getElementById('cardProgress').innerText = `${currentIndex + 1} / ${activeList.length}`;
+
+            const isWrong = wrongData[p.id] && wrongData[p.id].active;
+            const wrongBtn = document.getElementById('wrongToggle');
+            if (isWrong) {
+                document.getElementById('frontWrongBadge').classList.remove('hidden');
+                wrongBtn.innerText = '★ 苦手解除';
+                wrongBtn.classList.add('active');
+            } else {
+                document.getElementById('frontWrongBadge').classList.add('hidden');
+                wrongBtn.innerText = '☆ 苦手登録';
+                wrongBtn.classList.remove('active');
+            }
+
+            const phrases = p[mode].split(' ');
+            let kami = phrases.slice(0, 3).join(' ');
+            let shimo = phrases.slice(3, 5).join(' ');
+
+            if (mode !== 'kanji' && kami.startsWith(p.kimariji)) {
+                kami = `<span class="kimariji">${p.kimariji}</span>${kami.slice(p.kimariji.length)}`;
+            }
+
+            document.getElementById('frontNumber').innerText = `No.${p.id}`;
+            document.getElementById('frontText').innerHTML = kami;
+            document.getElementById('frontAuthor').innerText = `${p.author} (${p.era})`;
+            document.getElementById('backNumber').innerText = `No.${p.id}`;
+            document.getElementById('backMeta').innerText = `${p.season} / ${p.genre}`;
+            document.getElementById('backText').innerText = shimo;
+            document.getElementById('backMeaning').innerText = p.meaning;
+        }
+
+        function nextCard() { if (activeList.length > 0) { currentIndex = (currentIndex + 1) % activeList.length; updateCard(); } }
+        function prevCard() { if (activeList.length > 0) { currentIndex = (currentIndex - 1 + activeList.length) % activeList.length; updateCard(); } }
+
+        function toggleCardWrongStatus() {
+            if (activeList.length === 0) return;
+            const p = activeList[currentIndex];
+            toggleWrong(p.id, null, false); // カードからの登録は手動（固定フラグなし）
+            updateCard();
+        }
+
+        /* --- 一覧表機能 --- */
+        function renderTable() {
+            const tbody = document.getElementById('poemTableBody');
+            tbody.innerHTML = '';
+            const mode = document.getElementById('displayMode').value;
+
+            sortedList.forEach(p => {
+                const isWrong = wrongData[p.id] && wrongData[p.id].active;
+                const isSelected = quizSelection[p.id] !== false;
+
+                let rowClass = '';
+                if (isWrong) rowClass = 'row-wrong';
+                if (!isSelected) rowClass += ' row-unselected';
+
+                const tr = document.createElement('tr');
+                tr.className = rowClass;
+
+                const phrases = p[mode].split(' ');
+                let kami = phrases.slice(0, 3).join(' ');
+                let shimo = phrases.slice(3, 5).join(' ');
+                if (mode !== 'kanji' && kami.startsWith(p.kimariji)) {
+                    kami = `<span class="kimariji">${p.kimariji}</span>${kami.slice(p.kimariji.length)}`;
+                }
+
+                // 間違えて固定されたものは区別がつくように鍵マークなどをつける
+                const labelWrong = (wrongData[p.id] && wrongData[p.id].isFixed) ? '🔒苦手' : '苦手';
+
+                tr.innerHTML = `
+                    <td style="text-align:center;"><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleQuizSelect(${p.id}, this)"></td>
+                    <td style="text-align:center;"><input type="checkbox" ${isWrong ? 'checked' : ''} onchange="handleTableWrong(${p.id}, this)"></td>
+                    <td>${p.id}</td>
+                    <td><strong>${kami}</strong><br><span style="color:#666; font-size:0.85rem;">${shimo}</span></td>
+                    <td>${p.author}<br><small style="color:#888;">(${p.era})</small></td>
+                    <td><small>${p.meaning}</small></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function handleTableWrong(id, checkbox) {
+            toggleWrong(id, checkbox.checked, false); // 表のチェックボックスクリックは手動扱い
+            checkbox.closest('tr').className = (checkbox.checked ? 'row-wrong' : '') + (!quizSelection[id] ? ' row-unselected' : '');
+        }
+
+        function toggleQuizSelect(id, checkbox) {
+            quizSelection[id] = checkbox.checked;
+            saveData();
+            updateActiveList();
+            const tr = checkbox.closest('tr');
+            const isWrong = wrongData[id] && wrongData[id].active;
+            tr.className = (isWrong ? 'row-wrong' : '') + (!checkbox.checked ? ' row-unselected' : '');
+        }
+
+        function toggleWrong(id, forceState = null, isSystemFixed = false) {
+            if (!wrongData[id]) wrongData[id] = { active: false, successCount: 0, isFixed: false };
+            
+            if (forceState !== null) {
+                wrongData[id].active = forceState;
+            } else {
+                wrongData[id].active = !wrongData[id].active;
+            }
+
+            if (wrongData[id].active) {
+                // クイズのミスによる自動登録なら固定フラグ(isFixed)を立てる
+                wrongData[id].isFixed = isSystemFixed;
+            } else {
+                wrongData[id].isFixed = false;
+                wrongData[id].successCount = 0;
+            }
+            saveData();
+            showToast(wrongData[id].active ? `No.${id} を苦手登録しました` : `No.${id} の苦手を解除しました`);
+        }
+
+
+        /* --- クイズシステム（activeListから出題） --- */
+        function startQuiz(type) {
+            updateActiveList();
+            currentQuizList = [...activeList];
+            
+            if (currentQuizList.length === 0) {
+                showToast('クイズチェックが入っている歌がありません！', true);
+                return;
+            }
+
+            currentQuizIndex = 0;
+            document.getElementById('cardSection').classList.add('hidden');
+            document.getElementById('tableSection').classList.add('hidden');
+            document.getElementById('quizSection').classList.remove('hidden');
+
+            if (type === '(2)') {
+                document.getElementById('quizTitle').innerText = 'Utalog - 下の句クイズ';
+                document.getElementById('quizContainer').innerHTML = `
+                    <p style="font-size:1.1rem; font-weight:bold;">解答形式を選択</p>
+                    <button onclick="startShimonoku('choice')" style="width:80%; margin:10px;">4択から選ぶ</button><br>
+                    <button onclick="startShimonoku('input')" style="width:80%; margin:10px; background:#2b4c3f;">ひらがな入力</button>
+                `;
+            } else if (type === '(3)') {
+                document.getElementById('quizTitle').innerText = 'Utalog - 句虫食いクイズ';
+                showMushikuiQuestion();
+            }
+        }
+
+        function closeQuiz() {
+            document.getElementById('quizSection').classList.add('hidden');
+            switchMode(document.getElementById('tabCard').classList.contains('active') ? 'card' : 'table');
+        }
+
+        function startShimonoku(mode) { subType = mode; showShimonokuQuestion(); }
+
+        function showShimonokuQuestion() {
+            if (currentQuizIndex >= currentQuizList.length) {
+                document.getElementById('quizContainer').innerHTML = '<p style="font-weight:bold; color:#2b4c3f; font-size:1.2rem;">全問終了しました！</p>';
+                return;
+            }
+
+            const currentPoem = currentQuizList[currentQuizIndex];
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = `<h3>第 ${currentQuizIndex + 1} 問 / 全 ${currentQuizList.length} 問</h3>`;
+            
+            const phrases = currentPoem.kanji.split(' ');
+            const kamiKanji = phrases.slice(0, 3).join(' ');
+            const correctShimoGendai = currentPoem.gendai.split(' ').slice(3, 5).join(' ');
+
+            container.innerHTML += `<p><strong>上の句:</strong><br><span style="font-size:1.3rem; font-family:serif; color:#5b2024;">${kamiKanji}</span></p>`;
+
+            if (subType === 'choice') {
+                let choices = [correctShimoGendai];
+                let dummies = poems.filter(p => p.id !== currentPoem.id).map(p => p.gendai.split(' ').slice(3, 5).join(' '));
+                while(choices.length < 4 && dummies.length > 0) {
+                    let picked = dummies.splice(Math.floor(Math.random() * dummies.length), 1)[0];
+                    if(!choices.includes(picked)) choices.push(picked);
+                }
+                choices.sort(() => Math.random() - 0.5);
+
+                choices.forEach(c => {
+                    container.innerHTML += `<button class="choice-btn" onclick="checkAnswer('${c}', '${correctShimoGendai}', ${currentPoem.id}, 'shimo')">${c}</button>`;
+                });
+            } else {
+                container.innerHTML += `
+                    <input type="text" id="shimoInput" placeholder="したのくをひらがなでにゅうりょく" autocomplete="off"><br><br>
+                    <button onclick="checkInputAnswer('${correctShimoGendai}', ${currentPoem.id})">回答する</button>
+                `;
+            }
+        }
+
+        function showMushikuiQuestion() {
+            if (currentQuizIndex >= currentQuizList.length) {
+                document.getElementById('quizContainer').innerHTML = '<p style="font-weight:bold; color:#2b4c3f; font-size:1.2rem;">全問終了しました！</p>';
+                return;
+            }
+
+            const currentPoem = currentQuizList[currentQuizIndex];
+            const phrases = currentPoem.gendai.split(' '); 
+            const hideIndex = Math.floor(Math.random() * 4); 
+            const correctAnswer = phrases[hideIndex];
+
+            let displayPhrases = [...phrases];
+            displayPhrases[hideIndex] = '「 ？？？？？ 」';
+
+            const container = document.getElementById('quizContainer');
+            container.innerHTML = `<h3>第 ${currentQuizIndex + 1} 問 / 全 ${currentQuizList.length} 問</h3>`;
+            container.innerHTML += `<p><strong>虫食い歌:</strong><br><span style="font-size:1.1rem; font-family:serif;">${displayPhrases.join(' ')}</span></p>`;
+            container.innerHTML += `
+                <input type="text" id="mushiInput" placeholder="ひらがなでにゅうりょく" autocomplete="off"><br><br>
+                <button onclick="checkAnswer(document.getElementById('mushiInput').value.trim(), '${correctAnswer}', ${currentPoem.id}, 'mushi')">回答する</button>
+            `;
+        }
+
+        function checkAnswer(selected, correct, id, type) {
+            if (selected.replace(/\s+/g, '') === correct.replace(/\s+/g, '')) {
+                showToast('⭕ 正解！');
+                handleQuizScore(id, true);
+            } else {
+                showToast(`❌ 不正解！正解は「${correct}」`, true);
+                handleQuizScore(id, false);
+            }
+            currentQuizIndex++;
+            setTimeout(() => { type === 'shimo' ? showShimonokuQuestion() : showMushikuiQuestion(); }, 400);
+        }
+
+        function checkInputAnswer(correct, id) {
+            const inputVal = document.getElementById('shimoInput').value.trim();
+            checkAnswer(inputVal, correct, id, 'shimo');
+        }
+
+        function handleQuizScore(id, isCorrect) {
+            if (!wrongData[id]) wrongData[id] = { active: false, successCount: 0, isFixed: false };
+            if (isCorrect) {
+                if (wrongData[id].active) {
+                    wrongData[id].successCount++;
+                    if (wrongData[id].successCount >= 3) {
+                        wrongData[id].active = false; 
+                        wrongData[id].isFixed = false;
+                        wrongData[id].successCount = 0;
+                    }
+                }
+            } else {
+                // クイズで間違えたので、自動で苦手登録(active=true)にし、ミス固定フラグ(isFixed=true)をオン
+                wrongData[id].active = true;
+                wrongData[id].isFixed = true;
+                wrongData[id].successCount = 0;
+            }
+            saveData();
+        }
+    </script>
+</body>
+</html>
