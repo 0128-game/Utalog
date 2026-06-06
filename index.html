@@ -298,6 +298,18 @@
                     <option value="season">季節順</option>
                 </select>
             </label>
+            <label>季節・部立絞り込み:
+                <select id="filterMode" onchange="changeFilter()">
+                    <option value="all">すべての歌 (全100首)</option>
+                    <option value="春">春の歌</option>
+                    <option value="夏">夏の歌</option>
+                    <option value="秋">秋の歌</option>
+                    <option value="冬">冬の歌</option>
+                    <option value="新年">新年の歌</option>
+                    <option value="恋">恋の歌</option>
+                    <option value="雑">雑(その他)の歌</option>
+                </select>
+            </label>
             <button onclick="startQuiz('(2)')">下の句クイズ</button>
             <button onclick="startQuiz('(3)')">虫食いクイズ</button>
         </div>
@@ -334,21 +346,22 @@
             </div>
         </div>
         <div id="cardEmptyMessage" class="hidden" style="text-align:center; padding: 40px 0; color:#7f8c8d;">
-            一覧モードで「クイズ」にチェックを入れた歌がここに表示されます。
+            一覧モードで「クイズ」にチェックを入れた歌がここに表示されます。<br>
+            現在の「絞り込みフィルター」の設定もご確認ください。
         </div>
     </div>
 
     <div id="tableSection" class="section hidden">
         <div class="bulk-controls">
             <div class="bulk-group">
-                <span style="font-size: 0.85rem; font-weight: bold; color:#555; align-self:center;">クイズチェック:</span>
-                <button class="btn-mini btn-accent" onclick="bulkQuizSelect(true)">すべて選択</button>
-                <button class="btn-mini" onclick="bulkQuizSelect(false)">すべて外す</button>
+                <span style="font-size: 0.85rem; font-weight: bold; color:#555; align-self:center;">画面内の歌への操作:</span>
+                <button class="btn-mini btn-accent" onclick="bulkQuizSelectFiltered(true)">すべて選択</button>
+                <button class="btn-mini" onclick="bulkQuizSelectFiltered(false)">すべて外す</button>
             </div>
             <div class="bulk-group">
                 <span style="font-size: 0.85rem; font-weight: bold; color:#555; align-self:center;">苦手チェック:</span>
-                <button class="btn-mini btn-accent" onclick="bulkWrongSelect(true)">すべて登録</button>
-                <button class="btn-mini" onclick="bulkWrongSelect(false)">手動分のみ外す</button> 
+                <button class="btn-mini btn-accent" onclick="bulkWrongSelectFiltered(true)">すべて登録</button>
+                <button class="btn-mini" onclick="bulkWrongSelectFiltered(false)">手動分のみ外す</button> 
             </div>
         </div>
 
@@ -379,8 +392,9 @@
 
     <script>
         let poems = []; 
-        let sortedList = []; 
-        let activeList = []; 
+        let sortedList = [];     // ソート後の全データ
+        let filteredList = [];   // 季節などで絞り込まれた現在の表示用データ
+        let activeList = [];     // filteredList の中で、さらにクイズチェックが入っている有効データ
         let currentIndex = 0;
         
         let wrongData = JSON.parse(localStorage.getItem('utalog_wrong_data')) || {}; 
@@ -389,7 +403,7 @@
         let currentQuizList = [];
         let currentQuizIndex = 0;
         let subType = '';
-        let selectedQuizGlobalType = ''; // (2)か(3)を保持
+        let selectedQuizGlobalType = '';
 
         window.onload = function() {
             fetch('hyakunin.json')
@@ -449,13 +463,30 @@
                 sortedList.sort((a, b) => a.id - b.id);
             }
 
+            changeFilter();
+        }
+
+        // 【新設】選択された季節・部立で絞り込む
+        function changeFilter() {
+            const filter = document.getElementById('filterMode').value;
+            
+            if (filter === 'all') {
+                filteredList = [...sortedList];
+            } else if (['春', '夏', '秋', '冬', '新年'].includes(filter)) {
+                filteredList = sortedList.filter(p => p.season === filter);
+            } else {
+                // 恋、雑などのジャンル（部立）判定
+                filteredList = sortedList.filter(p => p.genre === filter);
+            }
+
             currentIndex = 0;
             updateActiveList();
             updateView();
         }
 
+        // 有効データ（カード・クイズ出題用）を、絞り込み済みのリストの中からチェックありの歌だけに限定する
         function updateActiveList() {
-            activeList = sortedList.filter(p => quizSelection[p.id] !== false);
+            activeList = filteredList.filter(p => quizSelection[p.id] !== false);
             if (currentIndex >= activeList.length && activeList.length > 0) {
                 currentIndex = 0;
             }
@@ -469,16 +500,17 @@
             }
         }
 
-        function bulkQuizSelect(status) {
-            sortedList.forEach(p => { quizSelection[p.id] = status; });
+        /* --- 一括操作機能（絞り込み画面内だけに作用するように改良） --- */
+        function bulkQuizSelectFiltered(status) {
+            filteredList.forEach(p => { quizSelection[p.id] = status; });
             saveData();
             updateActiveList();
             renderTable();
-            showToast(status ? 'すべての歌をクイズ対象にしました' : 'すべてのクイズチェックを外しました');
+            showToast(status ? '表示中の歌にすべてチェックを入れました' : '表示中の歌のチェックをすべて外しました');
         }
 
-        function bulkWrongSelect(status) {
-            sortedList.forEach(p => {
+        function bulkWrongSelectFiltered(status) {
+            filteredList.forEach(p => {
                 if (!wrongData[p.id]) wrongData[p.id] = { active: false, successCount: 0, isFixed: false };
                 if (status === true) {
                     wrongData[p.id].active = true;
@@ -491,23 +523,22 @@
             });
             saveData();
             renderTable();
-            showToast(status ? 'すべての歌を苦手登録しました' : '手動登録分の苦手を一括解除しました（ミス固定分はキープ）');
+            showToast(status ? '表示中の歌をすべて苦手登録しました' : '表示中の手動登録分を解除しました（ミス固定分はキープ）');
         }
 
-        /* --- フラッシュカード機能（シャッフル対応） --- */
+        /* --- フラッシュカード機能 --- */
         function shuffleCards() {
             if (activeList.length <= 1) {
                 showToast('シャッフルする十分なカードがありません', true);
                 return;
             }
-            // フィッシャー–イェーツのシャッフルアルゴリズム
             for (let i = activeList.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [activeList[i], activeList[j]] = [activeList[j], activeList[i]];
             }
             currentIndex = 0;
             updateCard();
-            showToast('カードの順番をランダムにシャッフルしました！');
+            showToast('現在の絞り込みカードをシャッフルしました！');
         }
 
         function toggleFlip() { 
@@ -576,7 +607,7 @@
             tbody.innerHTML = '';
             const mode = document.getElementById('displayMode').value;
 
-            sortedList.forEach(p => {
+            filteredList.forEach(p => {
                 const isWrong = wrongData[p.id] && wrongData[p.id].active;
                 const isSelected = quizSelection[p.id] !== false;
 
@@ -639,15 +670,15 @@
             showToast(wrongData[id].active ? `No.${id} を苦手登録しました` : `No.${id} の苦手を解除しました`);
         }
 
-        /* --- クイズシステム（ランダム10問対応） --- */
+        /* --- クイズシステム --- */
         function startQuiz(type) {
             updateActiveList();
             if (activeList.length === 0) {
-                showToast('クイズチェックが入っている歌がありません！', true);
+                showToast('現在のフィルター条件でチェックが入っている歌がありません！', true);
                 return;
             }
 
-            selectedQuizGlobalType = type; // クイズの種類を記憶
+            selectedQuizGlobalType = type;
             
             document.getElementById('cardSection').classList.add('hidden');
             document.getElementById('tableSection').classList.add('hidden');
@@ -656,39 +687,35 @@
             const title = (type === '(2)') ? '下の句クイズ' : '句虫食いクイズ';
             document.getElementById('quizTitle').innerText = `Utalog - ${title}`;
 
-            // 出題形式と問題数の選択画面を表示
             const container = document.getElementById('quizContainer');
             if (type === '(2)') {
                 container.innerHTML = `
                     <p style="font-size:1.1rem; font-weight:bold;">出題数と解答形式を選んでください</p>
-                    <div style="margin-bottom:15px; color:#666; font-size:0.9rem;">現在チェックされている歌: ${activeList.length}首</div>
-                    <button onclick="setupQuizRange(false, 'choice')" style="width:80%; margin:8px;">🎯 全問に挑戦 (4択)</button><br>
+                    <div style="margin-bottom:15px; color:#666; font-size:0.9rem;">現在の対象（フィルター内チェック済）: ${activeList.length}首</div>
+                    <button onclick="setupQuizRange(false, 'choice')" style="width:80%; margin:8px;">🎯 対象の全問に挑戦 (4択)</button><br>
                     <button onclick="setupQuizRange(true, 'choice')" style="width:80%; margin:8px; background:#2b4c3f;">🎲 ランダム10問に挑戦 (4択)</button><br>
-                    <button onclick="setupQuizRange(false, 'input')" style="width:80%; margin:8px; background:#7f8c8d;">✍️ 全問に挑戦 (キーボード入力)</button><br>
-                    <button onclick="setupQuizRange(true, 'input')" style="width:80%; margin:8px; background:#34495e;">🎲 ランダム10問に挑戦 (キーボード入力)</button>
+                    <button onclick="setupQuizRange(false, 'input')" style="width:80%; margin:8px; background:#7f8c8d;">✍️ 対象の全問に挑戦 (入力)</button><br>
+                    <button onclick="setupQuizRange(true, 'input')" style="width:80%; margin:8px; background:#34495e;">🎲 ランダム10問に挑戦 (入力)</button>
                 `;
             } else {
                 container.innerHTML = `
                     <p style="font-size:1.1rem; font-weight:bold;">出題数を選んでください</p>
-                    <div style="margin-bottom:15px; color:#666; font-size:0.9rem;">現在チェックされている歌: ${activeList.length}首</div>
-                    <button onclick="setupQuizRange(false, '')" style="width:80%; margin:8px;">🎯 全問に挑戦</button><br>
+                    <div style="margin-bottom:15px; color:#666; font-size:0.9rem;">現在の対象（フィルター内チェック済）: ${activeList.length}首</div>
+                    <button onclick="setupQuizRange(false, '')" style="width:80%; margin:8px;">🎯 対象の全問に挑戦</button><br>
                     <button onclick="setupQuizRange(true, '')" style="width:80%; margin:8px; background:#2b4c3f;">🎲 ランダム10問に挑戦</button>
                 `;
             }
         }
 
-        // 問題数を決定してリストをセットアップ
         function setupQuizRange(isRandom10, mode) {
             subType = mode;
             let tempPool = [...activeList];
 
-            // リストをランダムにシャッフル
             for (let i = tempPool.length - 1; i > 0; i--) {
                 const j = Math.floor(Math.random() * (i + 1));
                 [tempPool[i], tempPool[j]] = [tempPool[j], tempPool[i]];
             }
 
-            // 10問制限がオンの場合は先頭から10件だけ切り出し
             if (isRandom10) {
                 currentQuizList = tempPool.slice(0, 10);
             } else {
