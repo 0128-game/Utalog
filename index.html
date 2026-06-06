@@ -85,7 +85,6 @@
             border: 1px solid #f0e6d6;
         }
 
-        /* 一括操作ボタンエリア */
         .bulk-controls {
             display: flex;
             justify-content: space-between;
@@ -128,7 +127,6 @@
 
         button:hover { background: #732c31; }
 
-        /* ミニボタン（一括操作用） */
         .btn-mini {
             padding: 4px 10px;
             font-size: 0.75rem;
@@ -205,6 +203,7 @@
             text-align: center;
             margin: 10px 0;
             font-family: "Yu Mincho", "YuMincho", serif;
+            letter-spacing: 0.05em;
         }
 
         .author-text { font-size: 0.9rem; color: #666; margin-top: 5px; }
@@ -224,7 +223,13 @@
             padding: 6px 12px; font-size: 0.8rem;
         }
         .wrong-toggle-btn.active { background: #c0392b; color: white; }
-        .kimariji { color: #c0392b; font-weight: bold; background: #fdf2f0; padding: 1px 4px; border-radius: 4px; }
+        
+        .kimariji { 
+            color: #d32f2f !important; 
+            font-weight: 800; 
+            border-bottom: 2px solid rgba(211, 47, 47, 0.2);
+            padding-bottom: 1px;
+        }
 
         /* テーブル */
         .table-container { overflow-x: auto; margin-top: 5px; }
@@ -300,6 +305,9 @@
 
     <div id="cardSection" class="section">
         <div id="cardWindow">
+            <div style="text-align: right; margin-bottom: -10px;">
+                <button class="btn-mini btn-accent" onclick="shuffleCards()">🔀 カードをシャッフル</button>
+            </div>
             <div class="card-container" onclick="toggleFlip()">
                 <div id="flashCard" class="card">
                     <div class="card-front">
@@ -371,8 +379,8 @@
 
     <script>
         let poems = []; 
-        let sortedList = []; // 現在のソート順の全データ
-        let activeList = []; // クイズチェックが入っている有効データ（カードとクイズで使用）
+        let sortedList = []; 
+        let activeList = []; 
         let currentIndex = 0;
         
         let wrongData = JSON.parse(localStorage.getItem('utalog_wrong_data')) || {}; 
@@ -381,6 +389,7 @@
         let currentQuizList = [];
         let currentQuizIndex = 0;
         let subType = '';
+        let selectedQuizGlobalType = ''; // (2)か(3)を保持
 
         window.onload = function() {
             fetch('hyakunin.json')
@@ -420,7 +429,6 @@
                 updateActiveList();
                 updateCard();
             } else {
-                document.getElementById('tabCard').classList.remove('remove');
                 document.getElementById('tabCard').classList.remove('active');
                 document.getElementById('tabTable').classList.add('active');
                 document.getElementById('cardSection').classList.add('hidden');
@@ -429,7 +437,6 @@
             }
         }
 
-        // ソートが切り替わったら全体のリストを並び替えて、アクティブリストを更新
         function changeSort() {
             const sort = document.getElementById('sortMode').value;
             sortedList = [...poems];
@@ -447,7 +454,6 @@
             updateView();
         }
 
-        // クイズにチェックが入っているデータだけを「activeList」に抽出
         function updateActiveList() {
             activeList = sortedList.filter(p => quizSelection[p.id] !== false);
             if (currentIndex >= activeList.length && activeList.length > 0) {
@@ -463,27 +469,20 @@
             }
         }
 
-        /* --- 一括操作機能 --- */
-        // クイズチェックの一括操作
         function bulkQuizSelect(status) {
-            sortedList.forEach(p => {
-                quizSelection[p.id] = status;
-            });
+            sortedList.forEach(p => { quizSelection[p.id] = status; });
             saveData();
             updateActiveList();
             renderTable();
             showToast(status ? 'すべての歌をクイズ対象にしました' : 'すべてのクイズチェックを外しました');
         }
 
-        // 苦手チェックの一括操作
         function bulkWrongSelect(status) {
             sortedList.forEach(p => {
                 if (!wrongData[p.id]) wrongData[p.id] = { active: false, successCount: 0, isFixed: false };
-                
                 if (status === true) {
                     wrongData[p.id].active = true;
                 } else {
-                    // 「すべて外す」の時、システム固定（isFixed: true）されてない手動分だけを外す
                     if (!wrongData[p.id].isFixed) {
                         wrongData[p.id].active = false;
                         wrongData[p.id].successCount = 0;
@@ -495,8 +494,22 @@
             showToast(status ? 'すべての歌を苦手登録しました' : '手動登録分の苦手を一括解除しました（ミス固定分はキープ）');
         }
 
+        /* --- フラッシュカード機能（シャッフル対応） --- */
+        function shuffleCards() {
+            if (activeList.length <= 1) {
+                showToast('シャッフルする十分なカードがありません', true);
+                return;
+            }
+            // フィッシャー–イェーツのシャッフルアルゴリズム
+            for (let i = activeList.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [activeList[i], activeList[j]] = [activeList[j], activeList[i]];
+            }
+            currentIndex = 0;
+            updateCard();
+            showToast('カードの順番をランダムにシャッフルしました！');
+        }
 
-        /* --- フラッシュカード機能 --- */
         function toggleFlip() { 
             if (activeList.length > 0) document.getElementById('flashCard').classList.toggle('flipped'); 
         }
@@ -509,7 +522,6 @@
             }
             document.getElementById('cardWindow').classList.remove('hidden');
             document.getElementById('cardEmptyMessage').classList.add('hidden');
-
             document.getElementById('flashCard').classList.remove('flipped');
 
             const p = activeList[currentIndex];
@@ -533,8 +545,10 @@
             let kami = phrases.slice(0, 3).join(' ');
             let shimo = phrases.slice(3, 5).join(' ');
 
-            if (mode !== 'kanji' && kami.startsWith(p.kimariji)) {
-                kami = `<span class="kimariji">${p.kimariji}</span>${kami.slice(p.kimariji.length)}`;
+            if (mode !== 'kanji' && p.kimariji) {
+                if (kami.startsWith(p.kimariji)) {
+                    kami = `<span class="kimariji">${p.kimariji}</span>${kami.slice(p.kimariji.length)}`;
+                }
             }
 
             document.getElementById('frontNumber').innerText = `No.${p.id}`;
@@ -552,7 +566,7 @@
         function toggleCardWrongStatus() {
             if (activeList.length === 0) return;
             const p = activeList[currentIndex];
-            toggleWrong(p.id, null, false); // カードからの登録は手動（固定フラグなし）
+            toggleWrong(p.id, null, false);
             updateCard();
         }
 
@@ -576,12 +590,10 @@
                 const phrases = p[mode].split(' ');
                 let kami = phrases.slice(0, 3).join(' ');
                 let shimo = phrases.slice(3, 5).join(' ');
-                if (mode !== 'kanji' && kami.startsWith(p.kimariji)) {
+
+                if (mode !== 'kanji' && p.kimariji && kami.startsWith(p.kimariji)) {
                     kami = `<span class="kimariji">${p.kimariji}</span>${kami.slice(p.kimariji.length)}`;
                 }
-
-                // 間違えて固定されたものは区別がつくように鍵マークなどをつける
-                const labelWrong = (wrongData[p.id] && wrongData[p.id].isFixed) ? '🔒苦手' : '苦手';
 
                 tr.innerHTML = `
                     <td style="text-align:center;"><input type="checkbox" ${isSelected ? 'checked' : ''} onchange="toggleQuizSelect(${p.id}, this)"></td>
@@ -596,7 +608,7 @@
         }
 
         function handleTableWrong(id, checkbox) {
-            toggleWrong(id, checkbox.checked, false); // 表のチェックボックスクリックは手動扱い
+            toggleWrong(id, checkbox.checked, false);
             checkbox.closest('tr').className = (checkbox.checked ? 'row-wrong' : '') + (!quizSelection[id] ? ' row-unselected' : '');
         }
 
@@ -611,7 +623,6 @@
 
         function toggleWrong(id, forceState = null, isSystemFixed = false) {
             if (!wrongData[id]) wrongData[id] = { active: false, successCount: 0, isFixed: false };
-            
             if (forceState !== null) {
                 wrongData[id].active = forceState;
             } else {
@@ -619,7 +630,6 @@
             }
 
             if (wrongData[id].active) {
-                // クイズのミスによる自動登録なら固定フラグ(isFixed)を立てる
                 wrongData[id].isFixed = isSystemFixed;
             } else {
                 wrongData[id].isFixed = false;
@@ -629,31 +639,67 @@
             showToast(wrongData[id].active ? `No.${id} を苦手登録しました` : `No.${id} の苦手を解除しました`);
         }
 
-
-        /* --- クイズシステム（activeListから出題） --- */
+        /* --- クイズシステム（ランダム10問対応） --- */
         function startQuiz(type) {
             updateActiveList();
-            currentQuizList = [...activeList];
-            
-            if (currentQuizList.length === 0) {
+            if (activeList.length === 0) {
                 showToast('クイズチェックが入っている歌がありません！', true);
                 return;
             }
 
-            currentQuizIndex = 0;
+            selectedQuizGlobalType = type; // クイズの種類を記憶
+            
             document.getElementById('cardSection').classList.add('hidden');
             document.getElementById('tableSection').classList.add('hidden');
             document.getElementById('quizSection').classList.remove('hidden');
 
+            const title = (type === '(2)') ? '下の句クイズ' : '句虫食いクイズ';
+            document.getElementById('quizTitle').innerText = `Utalog - ${title}`;
+
+            // 出題形式と問題数の選択画面を表示
+            const container = document.getElementById('quizContainer');
             if (type === '(2)') {
-                document.getElementById('quizTitle').innerText = 'Utalog - 下の句クイズ';
-                document.getElementById('quizContainer').innerHTML = `
-                    <p style="font-size:1.1rem; font-weight:bold;">解答形式を選択</p>
-                    <button onclick="startShimonoku('choice')" style="width:80%; margin:10px;">4択から選ぶ</button><br>
-                    <button onclick="startShimonoku('input')" style="width:80%; margin:10px; background:#2b4c3f;">ひらがな入力</button>
+                container.innerHTML = `
+                    <p style="font-size:1.1rem; font-weight:bold;">出題数と解答形式を選んでください</p>
+                    <div style="margin-bottom:15px; color:#666; font-size:0.9rem;">現在チェックされている歌: ${activeList.length}首</div>
+                    <button onclick="setupQuizRange(false, 'choice')" style="width:80%; margin:8px;">🎯 全問に挑戦 (4択)</button><br>
+                    <button onclick="setupQuizRange(true, 'choice')" style="width:80%; margin:8px; background:#2b4c3f;">🎲 ランダム10問に挑戦 (4択)</button><br>
+                    <button onclick="setupQuizRange(false, 'input')" style="width:80%; margin:8px; background:#7f8c8d;">✍️ 全問に挑戦 (キーボード入力)</button><br>
+                    <button onclick="setupQuizRange(true, 'input')" style="width:80%; margin:8px; background:#34495e;">🎲 ランダム10問に挑戦 (キーボード入力)</button>
                 `;
-            } else if (type === '(3)') {
-                document.getElementById('quizTitle').innerText = 'Utalog - 句虫食いクイズ';
+            } else {
+                container.innerHTML = `
+                    <p style="font-size:1.1rem; font-weight:bold;">出題数を選んでください</p>
+                    <div style="margin-bottom:15px; color:#666; font-size:0.9rem;">現在チェックされている歌: ${activeList.length}首</div>
+                    <button onclick="setupQuizRange(false, '')" style="width:80%; margin:8px;">🎯 全問に挑戦</button><br>
+                    <button onclick="setupQuizRange(true, '')" style="width:80%; margin:8px; background:#2b4c3f;">🎲 ランダム10問に挑戦</button>
+                `;
+            }
+        }
+
+        // 問題数を決定してリストをセットアップ
+        function setupQuizRange(isRandom10, mode) {
+            subType = mode;
+            let tempPool = [...activeList];
+
+            // リストをランダムにシャッフル
+            for (let i = tempPool.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [tempPool[i], tempPool[j]] = [tempPool[j], tempPool[i]];
+            }
+
+            // 10問制限がオンの場合は先頭から10件だけ切り出し
+            if (isRandom10) {
+                currentQuizList = tempPool.slice(0, 10);
+            } else {
+                currentQuizList = tempPool;
+            }
+
+            currentQuizIndex = 0;
+            
+            if (selectedQuizGlobalType === '(2)') {
+                showShimonokuQuestion();
+            } else {
                 showMushikuiQuestion();
             }
         }
@@ -662,8 +708,6 @@
             document.getElementById('quizSection').classList.add('hidden');
             switchMode(document.getElementById('tabCard').classList.contains('active') ? 'card' : 'table');
         }
-
-        function startShimonoku(mode) { subType = mode; showShimonokuQuestion(); }
 
         function showShimonokuQuestion() {
             if (currentQuizIndex >= currentQuizList.length) {
@@ -753,7 +797,6 @@
                     }
                 }
             } else {
-                // クイズで間違えたので、自動で苦手登録(active=true)にし、ミス固定フラグ(isFixed=true)をオン
                 wrongData[id].active = true;
                 wrongData[id].isFixed = true;
                 wrongData[id].successCount = 0;
