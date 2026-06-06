@@ -3,402 +3,486 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Utalog</title>
+    <title>Utalog（ウタログ） - 百人一首フラッシュカード</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🍁</text></svg>">
     <style>
         body {
-    font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
-    background: #f7f5f0; /* 温かみのある鳥の子色調の背景 */
-    color: #332f21; /* 完全な黒ではなく、深い墨色 */
-    margin: 0;
-    padding: 20px;
-    line-height: 1.6;
-}
+            font-family: "Helvetica Neue", Arial, "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+            background: #f7f5f0;
+            color: #332f21;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
 
-h1 {
-    text-align: center;
-    color: #5b2024; /* 深みのあるえんじ色 */
-    font-size: 2rem;
-    margin-bottom: 30px;
-    letter-spacing: 0.1em;
-    border-bottom: 2px solid #d9cbb6;
-    padding-bottom: 15px;
-}
+        h1 {
+            text-align: center;
+            color: #5b2024;
+            font-size: 2.2rem;
+            margin-bottom: 5px;
+            letter-spacing: 0.15em;
+            font-weight: 700;
+        }
 
-h2 {
-    color: #2b4c3f; /* 深みのある常磐色 */
-    font-size: 1.3rem;
-    margin-top: 0;
-    border-left: 4px solid #2b4c3f;
-    padding-left: 10px;
-}
+        .subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 0.9rem;
+            margin-bottom: 30px;
+        }
 
-/* 各セクションのカード */
-.section {
-    background: #ffffff;
-    padding: 25px;
-    margin-bottom: 25px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
-    border: 1px solid #eadecc;
-}
+        .section {
+            background: #ffffff;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+            border: 1px solid #eadecc;
+            max-width: 600px;
+            margin-left: auto;
+            margin-right: auto;
+        }
 
-/* コントロールエリア（選択肢やボタンの並び） */
-.flex-container {
-    display: flex;
-    gap: 15px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-    align-items: center;
-    background: #faf8f5;
-    padding: 15px;
-    border-radius: 8px;
-    border: 1px solid #f0e6d6;
-}
+        .flex-container {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            background: #faf8f5;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #f0e6d6;
+        }
 
-label {
-    font-size: 0.9rem;
-    font-weight: bold;
-    color: #555;
-}
+        label {
+            font-size: 0.85rem;
+            font-weight: bold;
+            color: #555;
+        }
 
-select {
-    padding: 8px 12px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    background-color: #fff;
-    font-size: 0.9rem;
-    cursor: pointer;
-}
+        select {
+            padding: 6px 10px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            font-size: 0.85rem;
+            cursor: pointer;
+        }
 
-/* ボタンのデザイン */
-button {
-    background: #5b2024; /* えんじ色 */
-    color: white;
-    border: none;
-    padding: 10px 18px;
-    font-size: 0.9rem;
-    border-radius: 6px;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.1s;
-    font-weight: bold;
-}
+        button {
+            background: #5b2024;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            font-size: 0.9rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            font-weight: bold;
+        }
 
-button:hover {
-    background: #732c31;
-    transform: translateY(-1px);
-}
+        button:hover {
+            background: #732c31;
+        }
 
-button:active {
-    transform: translateY(1px);
-}
+        /* フラッシュカードのデザイン */
+        .card-container {
+            perspective: 1000px;
+            margin: 20px auto;
+            width: 100%;
+            height: 280px;
+            cursor: pointer;
+        }
 
-/* テーブル（一覧表）の洗練 */
-table {
-    width: 100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    margin-top: 15px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 1px solid #eadecc;
-}
+        .card {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 15px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+        }
 
-th, td {
-    padding: 14px 16px;
-    text-align: left;
-    border-bottom: 1px solid #eee;
-}
+        /* 表面・裏面の共通スタイル */
+        .card-front, .card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            border-radius: 15px;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border: 2px solid #eadecc;
+        }
 
-th {
-    background: #2b4c3f; /* 常磐色 */
-    color: white;
-    font-weight: 600;
-    font-size: 0.95rem;
-    letter-spacing: 0.05em;
-}
+        /* 表面（上の句など） */
+        .card-front {
+            background: #fdfdfb;
+            color: #332f21;
+        }
 
-td {
-    font-size: 0.95rem;
-}
+        /* 裏面（下の句・解説など） */
+        .card-back {
+            background: #fcfbfa;
+            transform: rotateY(180deg);
+            border-color: #2b4c3f;
+        }
 
-tr:last-child td {
-    border-bottom: none;
-}
+        /* カードが裏返ったときのクラス */
+        .card.flipped {
+            transform: rotateY(180deg);
+        }
 
-/* チェックボックスの入った行のホバー効果 */
-tbody tr:hover {
-    background-color: #fcfbfa;
-}
+        /* 苦手フラグがあるカードのバッジ */
+        .wrong-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: #fff0f0;
+            color: #c0392b;
+            border: 1px solid #fcc;
+            padding: 3px 8px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
 
-/* 間違えた歌（赤背景）を上品に */
-.wrong-active {
-    background-color: #fff0f0 !important;
-}
-.wrong-active td {
-    border-bottom: 1px solid #fcc !important;
-}
+        .poem-number {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 0.85rem;
+            color: #999;
+            font-weight: bold;
+        }
 
-/* 決まり字の強調 */
-.kimariji {
-    color: #c0392b;
-    font-weight: bold;
-    background: #fdf2f0;
-    padding: 1px 4px;
-    border-radius: 4px;
-}
+        /* カード内のテキスト */
+        .poem-text {
+            font-size: 1.35rem;
+            font-weight: bold;
+            text-align: center;
+            word-break: break-all;
+            margin: 10px 0;
+            font-family: "Yu Mincho", "YuMincho", serif; /* 歌はきれいな明朝体 */
+        }
 
-/* クイズエリア */
-.quiz-box {
-    border: 2px solid #eadecc;
-    background: #faf8f5;
-    padding: 30px;
-    border-radius: 10px;
-    margin-top: 15px;
-    text-align: center;
-}
+        .author-text {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 5px;
+        }
 
-.quiz-box h3 {
-    margin-top: 0;
-    color: #7f8c8d;
-    font-size: 0.9rem;
-}
+        .meaning-text {
+            font-size: 0.9rem;
+            color: #444;
+            text-align: center;
+            background: #faf8f5;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 10px;
+            border: 1px solid #eee;
+        }
 
-.quiz-box p {
-    font-size: 1.2rem;
-    margin: 20px 0;
-}
+        .meta-info {
+            font-size: 0.8rem;
+            color: #2b4c3f;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
 
-/* 4択クイズのボタン */
-.choice-btn {
-    display: block;
-    width: 100%;
-    max-width: 500 bounds;
-    margin: 10px auto;
-    padding: 14px 20px;
-    background: #ffffff;
-    color: #332f21;
-    border: 1px solid #d9cbb6;
-    border-radius: 8px;
-    cursor: pointer;
-    text-align: left;
-    font-size: 1rem;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    transition: all 0.2s;
-}
+        /* ナビゲーション（前へ・次へ） */
+        .nav-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+        }
 
-.choice-btn:hover {
-    background: #f5eedf;
-    border-color: #5b2024;
-    color: #5b2024;
-}
+        .nav-btn {
+            background: #2b4c3f;
+        }
+        .nav-btn:hover {
+            background: #396352;
+        }
 
-/* テキスト入力フォーム */
-input[type="text"] {
-    width: 100%;
-    max-width: 400px;
-    padding: 12px;
-    border: 1px solid #d9cbb6;
-    border-radius: 6px;
-    font-size: 1rem;
-    box-sizing: border-box;
-    outline: none;
-    transition: border-color 0.2s;
-}
+        .wrong-toggle-btn {
+            background: transparent;
+            color: #c0392b;
+            border: 1px solid #c0392b;
+            padding: 6px 12px;
+            font-size: 0.8rem;
+        }
+        .wrong-toggle-btn.active {
+            background: #c0392b;
+            color: white;
+        }
 
-input[type="text"]:focus {
-    border-color: #2b4c3f;
-    box-shadow: 0 0 5px rgba(43, 76, 63, 0.2);
-}
+        .kimariji {
+            color: #c0392b;
+            font-weight: bold;
+            background: #fdf2f0;
+            padding: 1px 4px;
+            border-radius: 4px;
+        }
 
-/* ユーティリティ */
-.hidden {
-    display: none;
-}
+        /* クイズエリア */
+        .quiz-box {
+            border: 2px solid #eadecc;
+            background: #faf8f5;
+            padding: 25px;
+            border-radius: 10px;
+            margin-top: 15px;
+            text-align: center;
+        }
 
-/* レスポンシブ対応（スマホで見やすく） */
-@media (max-width: 768px) {
-    body { padding: 10px; }
-    .section { padding: 15px; }
-    table, thead, tbody, th, td, tr { display: block; }
-    th { display: none; }
-    tr { margin-bottom: 15px; border: 1px solid #eadecc; border-radius: 8px; padding: 10px; background: #fff; }
-    td { border: none; padding: 6px 10px; }
-    td:before { content: attr(data-label); font-weight: bold; display: block; font-size: 0.8rem; color: #888; }
-}
+        .choice-btn {
+            display: block;
+            width: 100%;
+            margin: 10px auto;
+            padding: 12px 15px;
+            background: #ffffff;
+            color: #332f21;
+            border: 1px solid #d9cbb6;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.95rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            transition: all 0.2s;
+        }
+
+        .choice-btn:hover {
+            background: #f5eedf;
+            border-color: #5b2024;
+            color: #5b2024;
+        }
+
+        .hidden { display: none; }
     </style>
 </head>
 <body>
 
     <h1>Utalog</h1>
+    <div class="subtitle">百人一首学習フラッシュカード</div>
 
-    <div class="section">
-        <h2>(1) 百人一首 一覧表</h2>
+    <div id="mainSection" class="section">
         <div class="flex-container">
-            <label>表示切替:
-                <select id="displayMode" onchange="renderTable()">
+            <label>表示:
+                <select id="displayMode" onchange="updateCard()">
                     <option value="kanji">漢字入り</option>
                     <option value="rekishi">ひらがな歴史的</option>
                     <option value="gendai">ひらがな現代</option>
                 </select>
             </label>
-            <label>並び替え:
-                <select id="sortMode" onchange="renderTable()">
+            <label>並び:
+                <select id="sortMode" onchange="changeSort()">
                     <option value="id">番号順</option>
                     <option value="era">年代順</option>
                     <option value="season">季節ごと</option>
                 </select>
             </label>
-            <button onclick="startQuizFromSelected('(2)')">選択した歌で「下の句クイズ」</button>
-            <button onclick="startQuizFromSelected('(3)')">選択した歌で「句虫食いクイズ」</button>
+            <button onclick="startQuizFromCurrentMode('(2)')">下の句クイズ</button>
+            <button onclick="startQuizFromCurrentMode('(3)')">虫食いクイズ</button>
         </div>
 
-        <table>
-            <thead>
-                <tr>
-                    <th><input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)"></th>
-                    <th>番号</th>
-                    <th>歌</th>
-                    <th>作者 (年代)</th>
-                    <th>属性</th>
-                    <th>意味</th>
-                </tr>
-            </thead>
-            <tbody id="poemTableBody">
-                </tbody>
-        </table>
+        <div class="card-container" onclick="toggleFlip()">
+            <div id="flashCard" class="card">
+                <div class="card-front">
+                    <div id="frontWrongBadge" class="wrong-badge hidden">苦手</div>
+                    <div id="frontNumber" class="poem-number">No.--</div>
+                    <div style="font-size: 0.8rem; color:#aaa; margin-bottom: 10px;">【上の句】タップでめくる</div>
+                    <div id="frontText" class="poem-text">読み込み中...</div>
+                    <div id="frontAuthor" class="author-text"></div>
+                </div>
+                <div class="card-back">
+                    <div id="backNumber" class="poem-number">No.--</div>
+                    <div id="backMeta" class="meta-info"></div>
+                    <div style="font-size: 0.8rem; color:#aaa; margin-bottom: 5px;">【下の句】</div>
+                    <div id="backText" class="poem-text"></div>
+                    <div id="backMeaning" class="meaning-text"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="nav-controls">
+            <button class="nav-btn" onclick="prevCard()">◀ 前へ</button>
+            <button id="wrongToggle" class="wrong-toggle-btn" onclick="toggleWrongStatus()">★ 苦手登録</button>
+            <span id="cardProgress" style="font-size:0.9rem; color:#666;">0 / 0</span>
+            <button class="nav-btn" onclick="nextCard()">次へ ▶</button>
+        </div>
     </div>
 
     <div id="quizSection" class="section hidden">
-        <h2 id="quizTitle">クイズ</h2>
-        <div id="quizContainer" class="quiz-box">
-            </div>
-        <button onclick="closeQuiz()" style="margin-top: 10px;">クイズを終了して一覧に戻る</button>
+        <h2 id="quizTitle" style="color:#5b2024; font-size:1.3rem;">クイズ</h2>
+        <div id="quizContainer" class="quiz-box"></div>
+        <button onclick="closeQuiz()" style="margin-top: 15px; width:100%; background:#7f8c8d;">クイズを終了してカードに戻る</button>
     </div>
 
     <script>
-        // グローバル状態管理
-        let poems = []; // JSONから読み込んだ100首を格納
+        let poems = []; 
+        let displayList = []; // ソートやフィルタが適用された表示用の配列
+        let currentIndex = 0;
         let wrongData = JSON.parse(localStorage.getItem('hyakunin_wrong_data')) || {}; 
-        // 構造: { poemId: { active: true, successCount: 0 } }
 
+        // クイズ用状態
         let currentQuizList = [];
         let currentQuizIndex = 0;
-        let currentQuizType = ''; // '(2)' または '(3)'
-        let subType = ''; // 'choice' または 'input'
+        let currentQuizType = '';
+        let subType = '';
 
-        // ページ読み込み時にJSONを取得
         window.onload = function() {
             fetch('hyakunin.json')
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error('JSONファイルの読み込みに失敗しました。');
-                    }
+                    if (!response.ok) throw new Error('JSONの読み込みに失敗しました。');
                     return response.json();
                 })
                 .then(data => {
                     poems = data;
-                    renderTable();
+                    changeSort();
                 })
                 .catch(error => {
-                    alert(error.message + '\nローカル環境で動かす場合は、VSCodeのLive Serverなどのローカルサーバーを使用してください。');
+                    alert(error.message + '\nローカルサーバー（Live Server等）を起動して開いてください。');
                 });
         };
 
-        // ローカルストレージ保存用
         function saveWrongData() {
             localStorage.setItem('hyakunin_wrong_data', JSON.stringify(wrongData));
         }
 
-        // 決まり字を強調する関数（ひらがな表示時のみ適用）
-        function highlightKimariji(text, kimariji, mode) {
-            if (mode === 'kanji') return text; 
-            // 全角・半角スペースを考慮しつつ決まり字の長さを合わせる
-            if (text.startsWith(kimariji)) {
-                return `<span class="kimariji">${kimariji}</span>${text.slice(kimariji.length)}`;
-            }
-            return text;
-        }
-
-        // テーブル描画
-        function renderTable() {
-            const mode = document.getElementById('displayMode').value;
+        // ソート切り替え
+        function changeSort() {
             const sort = document.getElementById('sortMode').value;
-            const tbody = document.getElementById('poemTableBody');
-            tbody.innerHTML = '';
+            displayList = [...poems];
 
-            // 並び替え処理
-            let sortedPoems = [...poems];
             if (sort === 'era') {
-                sortedPoems.sort((a, b) => (a.era || '').localeCompare(b.era || ''));
+                displayList.sort((a, b) => (a.era || '').localeCompare(b.era || ''));
             } else if (sort === 'season') {
-                sortedPoems.sort((a, b) => (a.season || '').localeCompare(b.season || ''));
+                displayList.sort((a, b) => (a.season || '').localeCompare(b.season || ''));
             } else {
-                sortedPoems.sort((a, b) => a.id - b.id);
+                displayList.sort((a, b) => a.id - b.id);
             }
 
-            sortedPoems.forEach(p => {
-                const tr = document.createElement('tr');
-                if (wrongData[p.id] && wrongData[p.id].active) {
-                    tr.classList.add('wrong-active');
-                }
-
-                let displayText = p[mode] || '';
-                displayText = highlightKimariji(displayText, p.kimariji, mode);
-
-                tr.innerHTML = `
-                    <td><input type="checkbox" class="poem-select" value="${p.id}"></td>
-                    <td>${p.id}</td>
-                    <td>${displayText}</td>
-                    <td>${p.author}<br><small>(${p.era})</small></td>
-                    <td>${p.season} / ${p.genre}</td>
-                    <td><small>${p.meaning}</small></td>
-                `;
-                tbody.appendChild(tr);
-            });
+            currentIndex = 0;
+            updateCard();
         }
 
-        // 全選択/解除
-        function toggleSelectAll(master) {
-            const checkboxes = document.querySelectorAll('.poem-select');
-            checkboxes.forEach(cb => cb.checked = master.checked);
+        // カードのめくり
+        function toggleFlip() {
+            document.getElementById('flashCard').classList.toggle('flipped');
         }
 
-        // クイズ開始の準備
-        function startQuizFromSelected(type) {
-            const checkboxes = document.querySelectorAll('.poem-select:checked');
-            const selectedIds = Array.from(checkboxes).map(cb => parseInt(cb.value));
+        // カードの内容更新
+        function updateCard() {
+            if (displayList.length === 0) return;
 
-            if (selectedIds.length === 0) {
-                alert('クイズ対象の歌を一覧からチェックしてください。');
-                return;
+            // めくられていたら表面に戻す
+            document.getElementById('flashCard').classList.remove('flipped');
+
+            const p = displayList[currentIndex];
+            const mode = document.getElementById('displayMode').value;
+
+            // プログレス表示
+            document.getElementById('cardProgress').innerText = `${currentIndex + 1} / ${displayList.length}`;
+
+            // 苦手バッジの状態
+            const isWrong = wrongData[p.id] && wrongData[p.id].active;
+            const wrongBtn = document.getElementById('wrongToggle');
+            if (isWrong) {
+                document.getElementById('frontWrongBadge').classList.remove('hidden');
+                wrongBtn.innerText = '★ 苦手解除';
+                wrongBtn.classList.add('active');
+            } else {
+                document.getElementById('frontWrongBadge').classList.add('hidden');
+                wrongBtn.innerText = '☆ 苦手登録';
+                wrongBtn.classList.remove('active');
             }
 
-            currentQuizList = poems.filter(p => selectedIds.includes(p.id));
+            // テキスト分割（上の句：0~3番目の句、下の句：3~5番目の句）
+            const phrases = p[mode].split(' ');
+            let kami = phrases.slice(0, 3).join(' ');
+            let shimo = phrases.slice(3, 5).join(' ');
+
+            // ひらがな表示のときだけ決まり字を赤くハイライト
+            if (mode !== 'kanji' && kami.startsWith(p.kimariji)) {
+                kami = `<span class="kimariji">${p.kimariji}</span>${kami.slice(p.kimariji.length)}`;
+            }
+
+            // 表面セット
+            document.getElementById('frontNumber').innerText = `No.${p.id}`;
+            document.getElementById('frontText').innerHTML = kami;
+            document.getElementById('frontAuthor').innerText = `${p.author} (${p.era})`;
+
+            // 裏面セット
+            document.getElementById('backNumber').innerText = `No.${p.id}`;
+            document.getElementById('backMeta').innerText = `${p.season} / ${p.genre}`;
+            document.getElementById('backText').innerText = shimo;
+            document.getElementById('backMeaning').innerText = p.meaning;
+        }
+
+        function nextCard() {
+            if (displayList.length === 0) return;
+            currentIndex = (currentIndex + 1) % displayList.length;
+            updateCard();
+        }
+
+        function prevCard() {
+            if (displayList.length === 0) return;
+            currentIndex = (currentIndex - 1 + displayList.length) % displayList.length;
+            updateCard();
+        }
+
+        // 苦手ボタンのON/OFF
+        function toggleWrongStatus() {
+            if (displayList.length === 0) return;
+            const p = displayList[currentIndex];
+            
+            if (!wrongData[p.id]) {
+                wrongData[p.id] = { active: false, successCount: 0 };
+            }
+
+            wrongData[p.id].active = !wrongData[p.id].active;
+            wrongData[p.id].successCount = 0; // リセット
+            
+            saveWrongData();
+            updateCard();
+        }
+
+        /* --- クイズシステム（現在見ているカードに基づいて出題） --- */
+        function startQuizFromCurrentMode(type) {
+            // 現在のソート順のままクイズのリストにする
+            currentQuizList = [...displayList];
             currentQuizIndex = 0;
             currentQuizType = type;
 
+            document.getElementById('mainSection').classList.add('hidden');
             document.getElementById('quizSection').classList.remove('hidden');
-            window.scrollTo(0, document.getElementById('quizSection').offsetTop);
 
             if (type === '(2)') {
-                document.getElementById('quizTitle').innerText = '下の句クイズ';
+                document.getElementById('quizTitle').innerText = 'Utalog - 下の句クイズ';
                 document.getElementById('quizContainer').innerHTML = `
-                    <p>クイズの形式を選んでください：</p>
-                    <button onclick="startShimonoku('choice')">4択から選ぶ</button>
-                    <button onclick="startShimonoku('input')">ひらがな（現代）で入力する</button>
+                    <p style="font-size:1.1rem; font-weight:bold;">解答形式を選んでください</p>
+                    <button onclick="startShimonoku('choice')" style="width:80%; margin:10px;">4択から選ぶ</button><br>
+                    <button onclick="startShimonoku('input')" style="width:80%; margin:10px; background:#2b4c3f;">ひらがな入力</button>
                 `;
             } else if (type === '(3)') {
-                document.getElementById('quizTitle').innerText = '句虫食いクイズ';
-                startMushikui();
+                document.getElementById('quizTitle').innerText = 'Utalog - 句虫食いクイズ';
+                showMushikuiQuestion();
             }
         }
 
         function closeQuiz() {
             document.getElementById('quizSection').classList.add('hidden');
-            renderTable(); // 状態更新（赤背景のON/OFF）を一覧に反映
+            document.getElementById('mainSection').classList.remove('hidden');
+            updateCard();
         }
 
-        /* --- (2) 下の句クイズの実装 --- */
         function startShimonoku(mode) {
             subType = mode;
             showShimonokuQuestion();
@@ -406,7 +490,7 @@ input[type="text"]:focus {
 
         function showShimonokuQuestion() {
             if (currentQuizIndex >= currentQuizList.length) {
-                document.getElementById('quizContainer').innerHTML = '<p>指定されたすべての歌が終了しました！</p>';
+                document.getElementById('quizContainer').innerHTML = '<p style="font-weight:bold; color:#2b4c3f;">すべての歌のクイズが終了しました！</p>';
                 return;
             }
 
@@ -414,22 +498,18 @@ input[type="text"]:focus {
             const container = document.getElementById('quizContainer');
             container.innerHTML = `<h3>第 ${currentQuizIndex + 1} 問 / 全 ${currentQuizList.length} 問</h3>`;
             
-            // 漢字の上の句（初句・二句・三句）を抽出して表示
             const phrases = currentPoem.kanji.split(' ');
             const kamiKanji = phrases.slice(0, 3).join(' ');
             
-            // 現代仮名遣いの下の句（四句・結句）を正解とする
             const shimoPhrases = currentPoem.gendai.split(' ');
             const correctShimoGendai = shimoPhrases.slice(3, 5).join(' ');
 
-            container.innerHTML += `<p><strong>上の句（問題）:</strong> ${kamiKanji}</p>`;
+            container.innerHTML += `<p><strong>上の句:</strong><br><span style="font-size:1.3rem; font-family:serif; color:#5b2024;">${kamiKanji}</span></p>`;
 
             if (subType === 'choice') {
-                // 4択生成（他のすべての歌の下の句からランダムにダミーを作成）
                 let choices = [correctShimoGendai];
                 let dummies = poems.filter(p => p.id !== currentPoem.id).map(p => {
-                    const dp = p.gendai.split(' ');
-                    return dp.slice(3, 5).join(' ');
+                    return p.gendai.split(' ').slice(3, 5).join(' ');
                 });
 
                 while(choices.length < 4 && dummies.length > 0) {
@@ -437,17 +517,16 @@ input[type="text"]:focus {
                     let picked = dummies.splice(randIndex, 1)[0];
                     if(!choices.includes(picked)) choices.push(picked);
                 }
-                choices.sort(() => Math.random() - 0.5); // 選択肢をシャッフル
+                choices.sort(() => Math.random() - 0.5);
 
-                container.innerHTML += `<p>下の句を選んでください：</p>`;
+                container.innerHTML += `<p style="font-size:0.9rem; color:#666;">つながる下の句（現代仮名遣い）を選択してください：</p>`;
                 choices.forEach(c => {
                     container.innerHTML += `<button class="choice-btn" onclick="checkShimonokuAnswer('${c}', '${correctShimoGendai}', ${currentPoem.id})">${c}</button>`;
                 });
             } else {
-                // 入力式
                 container.innerHTML += `
-                    <p>下の句をひらがな（現代仮名遣い）で入力してください（スペースなし）：</p>
-                    <input type="text" id="shimoInput" style="width:80%; padding:8px;" autocomplete="off"><br><br>
+                    <p style="font-size:0.9rem; color:#666;">下の句をひらがな（現代仮名遣い）で入力してください（スペース不要）：</p>
+                    <input type="text" id="shimoInput" autocomplete="off"><br><br>
                     <button onclick="checkShimonokuInput('${correctShimoGendai}', ${currentPoem.id})">回答する</button>
                 `;
             }
@@ -458,7 +537,7 @@ input[type="text"]:focus {
                 alert('正解！');
                 handleScore(id, true);
             } else {
-                alert(`不正解！ 正解は「${correct}」です。`);
+                alert(`不正解！ 正解は\n「${correct}」です。`);
                 handleScore(id, false);
             }
             currentQuizIndex++;
@@ -473,42 +552,33 @@ input[type="text"]:focus {
                 alert('正解！');
                 handleScore(id, true);
             } else {
-                alert(`不正解！ 正解は「${correct}」です。`);
+                alert(`不正解！ 正解は\n「${correct}」です。`);
                 handleScore(id, false);
             }
             currentQuizIndex++;
             showShimonokuQuestion();
         }
 
-        /* --- (3) 句虫食いクイズの実装 --- */
-        function startMushikui() {
-            showMushikuiQuestion();
-        }
-
         function showMushikuiQuestion() {
             if (currentQuizIndex >= currentQuizList.length) {
-                document.getElementById('quizContainer').innerHTML = '<p>指定されたすべての歌が終了しました！</p>';
+                document.getElementById('quizContainer').innerHTML = '<p style="font-weight:bold; color:#2b4c3f;">すべての歌のクイズが終了しました！</p>';
                 return;
             }
 
             const currentPoem = currentQuizList[currentQuizIndex];
-            // 現代仮名遣いの歌を5つの句に分解（スペース区切り）
             const phrases = currentPoem.gendai.split(' '); 
-            
-            // 隠す句を1〜4句（配列のインデックス0〜3）からランダムに1つ決定
             const hideIndex = Math.floor(Math.random() * 4); 
             const correctAnswer = phrases[hideIndex];
 
-            // 虫食い表示の作成
             let displayPhrases = [...phrases];
             displayPhrases[hideIndex] = '「 ？？？？？ 」';
 
             const container = document.getElementById('quizContainer');
             container.innerHTML = `<h3>第 ${currentQuizIndex + 1} 問 / 全 ${currentQuizList.length} 問</h3>`;
-            container.innerHTML += `<p><strong>虫食い歌:</strong> ${displayPhrases.join(' ')}</p>`;
+            container.innerHTML += `<p><strong>虫食い歌:</strong><br><span style="font-size:1.1rem; font-family:serif;">${displayPhrases.join(' ')}</span></p>`;
             container.innerHTML += `
-                <p>「 ？？？？？ 」に入る句をひらがな（現代仮名遣い）で入力してください：</p>
-                <input type="text" id="mushiInput" style="width:80%; padding:8px;" autocomplete="off"><br><br>
+                <p style="font-size:0.9rem; color:#666;">「 ？？？？？ 」に入る句をひらがなで入力してください：</p>
+                <input type="text" id="mushiInput" autocomplete="off"><br><br>
                 <button onclick="checkMushikuiAnswer('${correctAnswer}', ${currentPoem.id})">回答する</button>
             `;
         }
@@ -526,7 +596,6 @@ input[type="text"]:focus {
             showMushikuiQuestion();
         }
 
-        /* --- 共通のスコア・ローカルストレージ処理 --- */
         function handleScore(id, isCorrect) {
             if (!wrongData[id]) {
                 wrongData[id] = { active: false, successCount: 0 };
@@ -536,7 +605,7 @@ input[type="text"]:focus {
                 if (wrongData[id].active) {
                     wrongData[id].successCount++;
                     if (wrongData[id].successCount >= 3) {
-                        wrongData[id].active = false;
+                        wrongData[id].active = false; // 3回連続正解で苦手クリア
                         wrongData[id].successCount = 0;
                     }
                 }
